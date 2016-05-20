@@ -174,6 +174,82 @@ namespace Microsoft.AspNetCore.Mvc.Infrastructure
         }
 
         [Fact]
+        public void SelectCandidates_Match_CaseSensitiveMatch_IncludesAllCaseInsensitiveMatches()
+        {
+            var actions = new ActionDescriptor[]
+            {
+                new ActionDescriptor()
+                {
+                    DisplayName = "A1",
+                    RouteValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        { "controller", "Home" },
+                        { "action", "Index" }
+                    },
+                },
+                new ActionDescriptor()
+                {
+                    DisplayName = "A2",
+                    RouteValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        { "controller", "home" },
+                        { "action", "Index" }
+                    },
+                },
+            };
+
+            var selector = CreateSelector(actions);
+
+            var routeContext = CreateRouteContext("GET");
+            routeContext.RouteData.Values.Add("controller", "Home");
+            routeContext.RouteData.Values.Add("action", "Index");
+
+            // Act
+            var candidates = selector.SelectCandidates(routeContext);
+
+            // Assert
+            Assert.Equal(actions, candidates);
+        }
+
+        [Fact]
+        public void SelectCandidates_Match_CaseInsensitiveMatch_IncludesAllCaseInsensitiveMatches()
+        {
+            var actions = new ActionDescriptor[]
+            {
+                new ActionDescriptor()
+                {
+                    DisplayName = "A1",
+                    RouteValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        { "controller", "Home" },
+                        { "action", "Index" }
+                    },
+                },
+                new ActionDescriptor()
+                {
+                    DisplayName = "A2",
+                    RouteValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        { "controller", "home" },
+                        { "action", "Index" }
+                    },
+                },
+            };
+
+            var selector = CreateSelector(actions);
+
+            var routeContext = CreateRouteContext("GET");
+            routeContext.RouteData.Values.Add("controller", "Home");
+            routeContext.RouteData.Values.Add("action", "index");
+
+            // Act
+            var candidates = selector.SelectCandidates(routeContext);
+
+            // Assert
+            Assert.Equal(actions, candidates);
+        }
+
+        [Fact]
         public void SelectBestCandidate_AmbiguousActions_LogIsCorrect()
         {
             // Arrange
@@ -661,15 +737,14 @@ namespace Microsoft.AspNetCore.Mvc.Infrastructure
             var actionDescriptorCollectionProvider = new ActionDescriptorCollectionProvider(
                 new[] { actionDescriptorProvider },
                 Enumerable.Empty<IActionDescriptorChangeProvider>());
-            var decisionTreeProvider = new ActionSelectorDecisionTreeProvider(actionDescriptorCollectionProvider);
 
             var actionConstraintProviders = new[]
             {
                 new DefaultActionConstraintProvider(),
             };
-
+            
             var actionSelector = new ActionSelector(
-                decisionTreeProvider,
+                actionDescriptorCollectionProvider,
                 GetActionConstraintCache(actionConstraintProviders),
                 NullLoggerFactory.Instance);
 
@@ -753,9 +828,8 @@ namespace Microsoft.AspNetCore.Mvc.Infrastructure
             var actionProvider = new Mock<IActionDescriptorCollectionProvider>(MockBehavior.Strict);
 
             actionProvider
-                .Setup(p => p.ActionDescriptors).Returns(new ActionDescriptorCollection(actions, 0));
-
-            var decisionTreeProvider = new ActionSelectorDecisionTreeProvider(actionProvider.Object);
+                .Setup(p => p.ActionDescriptors)
+                .Returns(new ActionDescriptorCollection(actions, 0));
 
             var actionConstraintProviders = new IActionConstraintProvider[] {
                     new DefaultActionConstraintProvider(),
@@ -763,7 +837,7 @@ namespace Microsoft.AspNetCore.Mvc.Infrastructure
                 };
 
             return new ActionSelector(
-                decisionTreeProvider,
+                actionProvider.Object,
                 GetActionConstraintCache(actionConstraintProviders),
                 loggerFactory);
         }
