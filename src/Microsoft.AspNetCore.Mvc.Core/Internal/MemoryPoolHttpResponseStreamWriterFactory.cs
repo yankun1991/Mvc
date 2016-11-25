@@ -14,10 +14,16 @@ namespace Microsoft.AspNetCore.Mvc.Internal
     /// </summary>
     public class MemoryPoolHttpResponseStreamWriterFactory : IHttpResponseStreamWriterFactory
     {
+        private static readonly string _defaultBufferSizeString = Environment.GetEnvironmentVariable("Mvc_ResponseStreamBufferSize");
+
         /// <summary>
         /// The default size of created char buffers.
         /// </summary>
-        public static readonly int DefaultBufferSize = 1024; // 1KB - results in a 4KB byte array for UTF8.
+        /// <example>4K (char) results in a 16KB (byte) array for UTF8.</example>
+        /// <remarks>Defaults to <see cref="HttpResponseStreamWriter.DefaultBufferSize"/>.</remarks>
+        public static readonly int DefaultBufferSize = string.IsNullOrEmpty(_defaultBufferSizeString) ?
+            HttpResponseStreamWriter.DefaultBufferSize :
+            int.Parse(_defaultBufferSizeString);
 
         private readonly ArrayPool<byte> _bytePool;
         private readonly ArrayPool<char> _charPool;
