@@ -369,6 +369,32 @@ namespace Microsoft.AspNetCore.Mvc.Formatters
             Assert.Equal(expectedData, actualData);
         }
 
+        [Fact]
+        public async Task ErrorDuringSerialization_DoesNotCloseTheBrackets()
+        {
+            // Arrange
+            var expectedOutput = "{\"Name\":\"Robert\"";
+            var outputFormatterContext = GetOutputFormatterContext(
+                new ModelWithSerializationError(),
+                typeof(ModelWithSerializationError));
+
+            var serializerSettings = JsonSerializerSettingsProvider.CreateSerializerSettings();
+            var jsonFormatter = new JsonOutputFormatter(serializerSettings, ArrayPool<char>.Shared);
+
+            // Act
+
+            await jsonFormatter.WriteResponseBodyAsync(outputFormatterContext, Encoding.UTF8);
+
+            // Assert
+            var body = outputFormatterContext.HttpContext.Response.Body;
+
+            Assert.NotNull(body);
+            body.Position = 0;
+
+            var content = new StreamReader(body, Encoding.UTF8).ReadToEnd();
+            Assert.Equal(expectedOutput, content);
+        }
+
         private static Encoding CreateOrGetSupportedEncoding(
             JsonOutputFormatter formatter,
             string encodingAsString,
@@ -466,6 +492,18 @@ namespace Microsoft.AspNetCore.Mvc.Formatters
             public int age { get; set; }
 
             public string FullName { get; set; }
+        }
+
+        private class ModelWithSerializationError
+        {
+            public string Name { get; } = "Robert";
+            public int Age
+            {
+                get
+                {
+                    throw new NotImplementedException($"Property {Age} has not been implemented");
+                }
+            }
         }
     }
 }
