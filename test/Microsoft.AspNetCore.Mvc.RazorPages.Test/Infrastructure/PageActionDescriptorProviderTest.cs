@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Razor.Internal;
 using Microsoft.AspNetCore.Mvc.RazorPages.Internal;
 using Microsoft.AspNetCore.Mvc.ViewFeatures.Internal;
 using Microsoft.AspNetCore.Razor.Evolution;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -30,7 +31,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                 });
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
-                GetAccessor<MvcOptions>(),
+                new TestOptionsManager<MvcOptions>(),
                 GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
@@ -53,7 +54,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                 });
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
-                GetAccessor<MvcOptions>(),
+                new TestOptionsManager<MvcOptions>(),
                 GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
@@ -80,7 +81,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                 });
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
-                GetAccessor<MvcOptions>(),
+                new TestOptionsManager<MvcOptions>(),
                 GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
@@ -112,7 +113,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
 
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
-                GetAccessor<MvcOptions>(),
+                new TestOptionsManager<MvcOptions>(),
                 options);
             var context = new ActionDescriptorProviderContext();
 
@@ -146,7 +147,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
             options.Value.RootDirectory = "/base-path";
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
-                GetAccessor<MvcOptions>(),
+                new TestOptionsManager<MvcOptions>(),
                 options);
             var context = new ActionDescriptorProviderContext();
 
@@ -178,7 +179,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                 });
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
-                GetAccessor<MvcOptions>(),
+                new TestOptionsManager<MvcOptions>(),
                 GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
@@ -202,7 +203,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                 });
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
-                GetAccessor<MvcOptions>(),
+                new TestOptionsManager<MvcOptions>(),
                 GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
@@ -239,7 +240,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                 });
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
-                GetAccessor<MvcOptions>(),
+                new TestOptionsManager<MvcOptions>(),
                 GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
@@ -277,7 +278,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                 });
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
-                GetAccessor(options),
+                new TestOptionsManager<MvcOptions>(options),
                 GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
@@ -318,7 +319,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                 });
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
-                GetAccessor(options),
+                new TestOptionsManager<MvcOptions>(options),
                 GetRazorPagesOptions());
             var context = new ActionDescriptorProviderContext();
 
@@ -377,7 +378,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                 });
             var provider = new PageActionDescriptorProvider(
                 razorProject.Object,
-                GetAccessor(options),
+                new TestOptionsManager<MvcOptions>(options),
                 razorOptions);
             var context = new ActionDescriptorProviderContext();
 
@@ -410,12 +411,87 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                 });
         }
 
-        private static IOptions<TOptions> GetAccessor<TOptions>(TOptions options = null)
-            where TOptions : class, new()
+        [Fact]
+        public void GetDescriptors_AddsActionDescriptorForPageName()
         {
-            var accessor = new Mock<IOptions<TOptions>>();
-            accessor.SetupGet(a => a.Value).Returns(options ?? new TOptions());
-            return accessor.Object;
+            // Arrange
+            var razorProject = new Mock<RazorProject>(MockBehavior.Strict);
+            razorProject.Setup(p => p.EnumerateItems("/"))
+                .Returns(new[]
+                {
+                    GetProjectItem("/", "/base-path/Test.cshtml", $"@page \"Home\" \"Some-Name\"{Environment.NewLine}"),
+                });
+            var options = GetRazorPagesOptions();
+
+            var provider = new PageActionDescriptorProvider(
+                razorProject.Object,
+                new TestOptionsManager<MvcOptions>(),
+                options);
+            var context = new ActionDescriptorProviderContext();
+
+            // Act
+            provider.OnProvidersExecuting(context);
+
+            // Assert
+            Assert.Collection(context.Results,
+                result =>
+                {
+                    Assert.Equal("base-path/Test/Home", result.AttributeRouteInfo.Template);
+                    Assert.Equal(0, result.AttributeRouteInfo.Order);
+                    var routeValue = Assert.Single(result.RouteValues);
+                    Assert.Equal("page", routeValue.Key);
+                    Assert.Equal("/base-path/Test", routeValue.Value);
+                },
+                result =>
+                {
+                    Assert.Equal("base-path/Test/Home", result.AttributeRouteInfo.Template);
+                    Assert.Equal(1, result.AttributeRouteInfo.Order);
+                    var routeValue = Assert.Single(result.RouteValues);
+                    Assert.Equal("page", routeValue.Key);
+                    Assert.Equal("Some-Name", routeValue.Value);
+                });
+        }
+
+        [Fact]
+        public void GetDescriptors_AddsActionDescriptorForPageName_ConfiguredByPageConvention()
+        {
+            // Arrange
+            var razorProject = new Mock<RazorProject>(MockBehavior.Strict);
+            razorProject.Setup(p => p.EnumerateItems("/"))
+                .Returns(new[]
+                {
+                    GetProjectItem("/", "/Test.cshtml", $"@page"),
+                });
+            var options = new RazorPagesOptions();
+            options.SetPageName("/Test", "ConventionName");
+
+            var provider = new PageActionDescriptorProvider(
+                razorProject.Object,
+                new TestOptionsManager<MvcOptions>(),
+                new TestOptionsManager<RazorPagesOptions>(options));
+            var context = new ActionDescriptorProviderContext();
+
+            // Act
+            provider.OnProvidersExecuting(context);
+
+            // Assert
+            Assert.Collection(context.Results,
+                result =>
+                {
+                    Assert.Equal("Test", result.AttributeRouteInfo.Template);
+                    Assert.Equal(0, result.AttributeRouteInfo.Order);
+                    var routeValue = Assert.Single(result.RouteValues);
+                    Assert.Equal("page", routeValue.Key);
+                    Assert.Equal("/Test", routeValue.Value);
+                },
+                result =>
+                {
+                    Assert.Equal("Test", result.AttributeRouteInfo.Template);
+                    Assert.Equal(1, result.AttributeRouteInfo.Order);
+                    var routeValue = Assert.Single(result.RouteValues);
+                    Assert.Equal("page", routeValue.Key);
+                    Assert.Equal("ConventionName", routeValue.Value);
+                });
         }
 
         private static IOptions<RazorPagesOptions> GetRazorPagesOptions()

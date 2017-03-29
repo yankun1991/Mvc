@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.RazorPages.Internal;
 using Microsoft.AspNetCore.Mvc.Routing;
-using Microsoft.AspNetCore.Mvc.ViewFeatures.Internal;
 using Microsoft.AspNetCore.Razor.Evolution;
 using Microsoft.Extensions.Options;
 
@@ -42,21 +42,20 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                     continue;
                 }
 
-                string template;
-                if (!PageDirectiveFeature.TryGetPageDirective(item, out template))
+                if (!PageDirectiveFeature.TryGetPageDirective(item, out var directive))
                 {
                     // .cshtml pages without @page are not RazorPages.
                     continue;
                 }
 
-                if (AttributeRouteModel.IsOverridePattern(template))
+                if (AttributeRouteModel.IsOverridePattern(directive.RouteTemplate))
                 {
                     throw new InvalidOperationException(string.Format(
                         Resources.PageActionDescriptorProvider_RouteTemplateCannotBeOverrideable,
                         item.Path));
                 }
 
-                AddActionDescriptors(context.Results, item, template);
+                AddActionDescriptors(context.Results, item, directive);
             }
         }
 
@@ -64,11 +63,21 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
         {
         }
 
-        private void AddActionDescriptors(IList<ActionDescriptor> actions, RazorProjectItem item, string template)
+        private void AddActionDescriptors(IList<ActionDescriptor> actions, RazorProjectItem item, PageDirectiveFeature directiveInfo)
         {
-            var model = new PageApplicationModel(item.CombinedPath, item.PathWithoutExtension);
+            var rootRelativePath = item.CombinedPath;
+            var viewEnginePath = item.PathWithoutExtension;
+            var name = directiveInfo.Name;
+            if (string.IsNullOrEmpty(name))
+            {
+                name = viewEnginePath;
+            }
+            var model = new PageApplicationModel(rootRelativePath, viewEnginePath)
+            {
+                Name = name,
+            };
             var routePrefix = item.PathWithoutExtension;
-            model.Selectors.Add(CreateSelectorModel(routePrefix, template));
+            model.Selectors.Add(CreateSelectorModel(routePrefix, directiveInfo.RouteTemplate));
 
             if (string.Equals(IndexFileName, item.FileName, StringComparison.OrdinalIgnoreCase))
             {
@@ -82,7 +91,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
                 {
                     parentDirectoryPath = parentDirectoryPath.Substring(0, index);
                 }
-                model.Selectors.Add(CreateSelectorModel(parentDirectoryPath, template));
+                model.Selectors.Add(CreateSelectorModel(parentDirectoryPath, directiveInfo.RouteTemplate));
             }
 
             for (var i = 0; i < _pagesOptions.Conventions.Count; i++)
@@ -103,25 +112,51 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure
 
             foreach (var selector in model.Selectors)
             {
-                actions.Add(new PageActionDescriptor()
+                var order = selector.AttributeRouteModel.Order ?? 0;
+                var attributeRouteInfo = new AttributeRouteInfo()
                 {
-                    AttributeRouteInfo = new AttributeRouteInfo()
+                    Name = selector.AttributeRouteModel.Name,
+                    Order = order,
+                    Template = selector.AttributeRouteModel.Template,
+                };
+                actions.Add(CreateDescriptor(item, model, filters, attributeRouteInfo, item.PathWithoutExtension));
+
+                if (!string.Equals(model.Name, viewEnginePath, StringComparison.Ordinal))
+                {
+                    // If a page has an alias, register an ActionDescriptor with a higher-ordered AttributeRoute.
+                    // The ordering would ensure that the route gets used for link generation, but is never used for inbound routing.
+                    attributeRouteInfo = new AttributeRouteInfo()
                     {
                         Name = selector.AttributeRouteModel.Name,
-                        Order = selector.AttributeRouteModel.Order ?? 0,
+                        Order = order + 1,
                         Template = selector.AttributeRouteModel.Template,
-                    },
-                    DisplayName = $"Page: {item.Path}",
-                    FilterDescriptors = filters,
-                    Properties = new Dictionary<object, object>(model.Properties),
-                    RelativePath = item.CombinedPath,
-                    RouteValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        { "page", item.PathWithoutExtension },
-                    },
-                    ViewEnginePath = item.Path,
-                });
+                    };
+
+                    actions.Add(CreateDescriptor(item, model, filters, attributeRouteInfo, model.Name));
+                }
             }
+        }
+
+        private static PageActionDescriptor CreateDescriptor(
+            RazorProjectItem item,
+            PageApplicationModel model,
+            List<FilterDescriptor> filters,
+            AttributeRouteInfo attributeRouteInfo,
+            string pageValue)
+        {
+            return new PageActionDescriptor()
+            {
+                AttributeRouteInfo = attributeRouteInfo,
+                DisplayName = $"Page: {item.Path}",
+                FilterDescriptors = filters,
+                Properties = new Dictionary<object, object>(model.Properties),
+                RelativePath = item.CombinedPath,
+                RouteValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    { "page", pageValue },
+                },
+                ViewEnginePath = item.Path,
+            };
         }
 
         private static SelectorModel CreateSelectorModel(string prefix, string template)
