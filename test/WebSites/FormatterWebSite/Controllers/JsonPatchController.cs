@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
-using FormatterWebSite;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,12 +11,15 @@ namespace FormatterWebSite.Controllers
     public class JsonPatchController : Controller
     {
         [HttpPatch]
-        public IActionResult JsonPatchWithModelState([FromBody] JsonPatchDocument<Customer> patchDoc)
+        public IActionResult PatchCustomer([FromBody] JsonPatchDocument<Customer> patchDoc)
         {
+            // Check for model state here as the format(ex: structure) of the JSON patch request could be incorrect.
             if (patchDoc != null)
             {
                 var customer = CreateCustomer();
 
+                // Supply model state here to capture any errors which could result from invalid data.
+                // For example, inserting a value at an invalid index in a list.
                 patchDoc.ApplyTo(customer, ModelState);
 
                 if (!ModelState.IsValid)
@@ -25,7 +27,7 @@ namespace FormatterWebSite.Controllers
                     return BadRequest(ModelState);
                 }
 
-                return new ObjectResult(customer);
+                return Ok(customer);
             }
             else
             {
@@ -34,40 +36,50 @@ namespace FormatterWebSite.Controllers
         }
 
         [HttpPatch]
-        public IActionResult JsonPatchWithModelStateAndPrefix(
-            [FromBody] JsonPatchDocument<Customer> patchDoc,
-            string prefix)
+        public IActionResult PatchCustomerWithPrefix([FromBody] JsonPatchDocument<Customer> patchDoc, string prefix)
         {
-            var customer = CreateCustomer();
+            // Check for model state here as the format(ex: structure) of the JSON patch request could be incorrect.
+            if (patchDoc != null)
+            {
+                var customer = CreateCustomer();
 
-            patchDoc.ApplyTo(customer, ModelState, prefix);
+                // Supply model state here to capture any errors which could result from invalid data.
+                // For example, inserting a value at an invalid index in a list.
+                patchDoc.ApplyTo(customer, ModelState, prefix);
 
-            if (!ModelState.IsValid)
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                return Ok(customer);
+            }
+            else
             {
                 return BadRequest(ModelState);
             }
-
-            return new ObjectResult(customer);
         }
 
         [HttpPatch]
-        public IActionResult JsonPatchWithoutModelState([FromBody] JsonPatchDocument<Customer> patchDoc)
+        public IActionResult PatchProduct([FromBody] JsonPatchDocument<Product> patchDoc)
         {
-            var customer = CreateCustomer();
+            if (patchDoc != null)
+            {
+                var product = new Product();
 
-            patchDoc.ApplyTo(customer);
+                patchDoc.ApplyTo(product, ModelState);
 
-            return new ObjectResult(customer);
-        }
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
 
-        [HttpPatch]
-        public IActionResult JsonPatchForProduct([FromBody] JsonPatchDocument<Product> patchDoc)
-        {
-            var product = new Product();
-
-            patchDoc.ApplyTo(product);
-
-            return new ObjectResult(product);
+                return Ok(product);
+            }
+            else
+            {
+                return BadRequest(ModelState);
+            }
         }
 
         private Customer CreateCustomer()
@@ -89,5 +101,4 @@ namespace FormatterWebSite.Controllers
             };
         }
     }
-
 }

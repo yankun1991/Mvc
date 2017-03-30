@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,9 +14,9 @@ using Xunit;
 
 namespace Microsoft.AspNetCore.Mvc.FunctionalTests
 {
-    public class JsonPatchSampleTest : IClassFixture<MvcTestFixture<FormatterWebSite.Startup>>
+    public class JsonPatchSampleTest : IClassFixture<MvcTestFixture<Startup>>
     {
-        public JsonPatchSampleTest(MvcTestFixture<FormatterWebSite.Startup> fixture)
+        public JsonPatchSampleTest(MvcTestFixture<Startup> fixture)
         {
             Client = fixture.Client;
         }
@@ -23,10 +24,9 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
         public HttpClient Client { get; }
 
         [Theory]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithoutModelState")]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithModelState")]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithModelStateAndPrefix?prefix=Patch")]
-        public async Task JsonPatch_ValidAddOperation_Success(string url)
+        [InlineData("http://localhost/jsonpatch/PatchCustomer")]
+        [InlineData("http://localhost/jsonpatch/PatchCustomerWithPrefix?prefix=Patch")]
+        public async Task AddOperation_Works(string url)
         {
             // Arrange
             var input = "[{ \"op\": \"add\", " +
@@ -43,16 +43,16 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
             var response = await Client.SendAsync(request);
 
             // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var body = await response.Content.ReadAsStringAsync();
             var customer = JsonConvert.DeserializeObject<Customer>(body);
             Assert.Equal("Name2", customer.Orders[2].OrderName);
         }
 
         [Theory]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithoutModelState")]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithModelState")]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithModelStateAndPrefix?prefix=Patch")]
-        public async Task JsonPatch_ValidReplaceOperation_Success(string url)
+        [InlineData("http://localhost/jsonpatch/PatchCustomer")]
+        [InlineData("http://localhost/jsonpatch/PatchCustomerWithPrefix?prefix=Patch")]
+        public async Task ReplaceOperation_Works(string url)
         {
             // Arrange
             var input = "[{ \"op\": \"replace\", " +
@@ -69,16 +69,16 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
             var response = await Client.SendAsync(request);
 
             // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var body = await response.Content.ReadAsStringAsync();
             var customer = JsonConvert.DeserializeObject<Customer>(body);
             Assert.Equal("ReplacedOrder", customer.Orders[0].OrderName);
         }
 
         [Theory]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithoutModelState")]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithModelState")]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithModelStateAndPrefix?prefix=Patch")]
-        public async Task JsonPatch_ValidCopyOperation_Success(string url)
+        [InlineData("http://localhost/jsonpatch/PatchCustomer")]
+        [InlineData("http://localhost/jsonpatch/PatchCustomerWithPrefix?prefix=Patch")]
+        public async Task CopyOperation_Works(string url)
         {
             // Arrange
             var input = "[{ \"op\": \"copy\", " +
@@ -95,16 +95,16 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
             var response = await Client.SendAsync(request);
 
             // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var body = await response.Content.ReadAsStringAsync();
             var customer = JsonConvert.DeserializeObject<Customer>(body);
             Assert.Equal("Order0", customer.Orders[1].OrderName);
         }
 
         [Theory]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithoutModelState")]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithModelState")]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithModelStateAndPrefix?prefix=Patch")]
-        public async Task JsonPatch_ValidMoveOperation_Success(string url)
+        [InlineData("http://localhost/jsonpatch/PatchCustomer")]
+        [InlineData("http://localhost/jsonpatch/PatchCustomerWithPrefix?prefix=Patch")]
+        public async Task MoveOperation_Works(string url)
         {
             // Arrange
             var input = "[{ \"op\": \"move\", " +
@@ -121,18 +121,17 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
             var response = await Client.SendAsync(request);
 
             // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var body = await response.Content.ReadAsStringAsync();
-
             var customer = JsonConvert.DeserializeObject<Customer>(body);
             Assert.Equal("Order0", customer.Orders[1].OrderName);
             Assert.Null(customer.Orders[0].OrderName);
         }
 
         [Theory]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithoutModelState")]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithModelState")]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithModelStateAndPrefix?prefix=Patch")]
-        public async Task JsonPatch_ValidRemoveOperation_Success(string url)
+        [InlineData("http://localhost/jsonpatch/PatchCustomer")]
+        [InlineData("http://localhost/jsonpatch/PatchCustomerWithPrefix?prefix=Patch")]
+        public async Task RemoveOperation_Works(string url)
         {
             // Arrange
             var input = "[{ \"op\": \"remove\", " +
@@ -148,16 +147,16 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
             var response = await Client.SendAsync(request);
 
             // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var body = await response.Content.ReadAsStringAsync();
             var customer = JsonConvert.DeserializeObject<Customer>(body);
             Assert.Null(customer.Orders[1].OrderName);
         }
 
         [Theory]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithoutModelState")]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithModelState")]
-        [InlineData("http://localhost/jsonpatch/JsonPatchWithModelStateAndPrefix?prefix=Patch")]
-        public async Task JsonPatch_MultipleValidOperations_Success(string url)
+        [InlineData("http://localhost/jsonpatch/PatchCustomer")]
+        [InlineData("http://localhost/jsonpatch/PatchCustomerWithPrefix?prefix=Patch")]
+        public async Task MultipleValidOperations_Success(string url)
         {
             // Arrange
             var input = "[{ \"op\": \"add\", " +
@@ -180,6 +179,7 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
             var response = await Client.SendAsync(request);
 
             // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var body = await response.Content.ReadAsStringAsync();
             var customer = JsonConvert.DeserializeObject<Customer>(body);
             Assert.Equal("ReplacedName", customer.Orders[2].OrderName);
@@ -193,21 +193,21 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
                 return new[]
                 {
                     new object[] {
-                        "http://localhost/jsonpatch/JsonPatchWithModelStateAndPrefix?prefix=Patch",
+                        "http://localhost/jsonpatch/PatchCustomerWithPrefix?prefix=Patch",
                         "[{ \"op\": \"add\", " +
                         "\"path\": \"Orders/5\", " +
                         "\"value\": { \"OrderName\": \"Name5\" }}]",
                         "{\"Patch.Customer\":[\"The index value provided by path segment '5' is out of bounds of the array size.\"]}"
                     },
                     new object[] {
-                        "http://localhost/jsonpatch/JsonPatchWithModelState",
+                        "http://localhost/jsonpatch/PatchCustomer",
                         "[{ \"op\": \"add\", " +
                         "\"path\": \"Orders/5\", " +
                         "\"value\": { \"OrderName\": \"Name5\" }}]",
                         "{\"Customer\":[\"The index value provided by path segment '5' is out of bounds of the array size.\"]}"
                     },
                     new object[] {
-                        "http://localhost/jsonpatch/JsonPatchWithModelStateAndPrefix?prefix=Patch",
+                        "http://localhost/jsonpatch/PatchCustomerWithPrefix?prefix=Patch",
                         "[{ \"op\": \"add\", " +
                         "\"path\": \"Orders/-\", " +
                         "\"value\": { \"OrderName\": \"Name2\" }}, " +
@@ -220,7 +220,7 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
                         "{\"Patch.Customer\":[\"The index value provided by path segment '4' is out of bounds of the array size.\"]}"
                     },
                     new object[] {
-                        "http://localhost/jsonpatch/JsonPatchWithModelState",
+                        "http://localhost/jsonpatch/PatchCustomer",
                         "[{ \"op\": \"add\", " +
                         "\"path\": \"Orders/-\", " +
                         "\"value\": { \"OrderName\": \"Name2\" }}, " +
@@ -237,7 +237,7 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
         }
 
         [Theory, MemberData("InvalidJsonPatchData")]
-        public async Task JsonPatch_InvalidOperations_failure(string url, string input, string errorMessage)
+        public async Task InvalidOperation_Fails(string url, string input, string errorMessage)
         {
             // Arrange
             var request = new HttpRequestMessage
@@ -251,12 +251,13 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
             var response = await Client.SendAsync(request);
 
             // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             var body = await response.Content.ReadAsStringAsync();
             Assert.Equal(errorMessage, body);
         }
 
         [Fact]
-        public async Task JsonPatch_InvalidData_FormatterErrorInModelState_Failure()
+        public async Task InvalidData_Results()
         {
             // Arrange
             var input = "{ \"op\": \"add\", " +
@@ -266,19 +267,20 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
             {
                 Content = new StringContent(input, Encoding.UTF8, "application/json-patch+json"),
                 Method = new HttpMethod("PATCH"),
-                RequestUri = new Uri("http://localhost/jsonpatch/JsonPatchWithModelState")
+                RequestUri = new Uri("http://localhost/jsonpatch/PatchCustomer")
             };
 
             // Act
             var response = await Client.SendAsync(request);
 
             // Assert
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             var body = await response.Content.ReadAsStringAsync();
             Assert.Equal("{\"\":[\"The input was not valid.\"]}", body);
         }
 
         [Fact]
-        public async Task JsonPatch_JsonConverterOnProperty_Success()
+        public async Task UsesJsonConverterOnPropertyWhenPatching_Works()
         {
             // Arrange
             var input = "[{ \"op\": \"add\", " +
@@ -288,13 +290,14 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
             {
                 Content = new StringContent(input, Encoding.UTF8, "application/json-patch+json"),
                 Method = new HttpMethod("PATCH"),
-                RequestUri = new Uri("http://localhost/jsonpatch/JsonPatchWithoutModelState")
+                RequestUri = new Uri("http://localhost/jsonpatch/PatchCustomer")
             };
 
             // Act
             var response = await Client.SendAsync(request);
 
             // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var body = await response.Content.ReadAsStringAsync();
             dynamic d = JObject.Parse(body);
             Assert.Equal("OrderTypeSetInConverter", (string)d.orders[2].orderType);
@@ -311,17 +314,17 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
             {
                 Content = new StringContent(input, Encoding.UTF8, "application/json-patch+json"),
                 Method = new HttpMethod("PATCH"),
-                RequestUri = new Uri("http://localhost/jsonpatch/JsonPatchForProduct")
+                RequestUri = new Uri("http://localhost/jsonpatch/PatchProduct")
             };
 
             // Act
             var response = await Client.SendAsync(request);
 
             // Assert
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             var body = await response.Content.ReadAsStringAsync();
             dynamic d = JObject.Parse(body);
             Assert.Equal("CategorySetInConverter", (string)d.productCategory.CategoryName);
-
         }
     }
 }
