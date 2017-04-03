@@ -278,53 +278,5 @@ namespace Microsoft.AspNetCore.Mvc.FunctionalTests
             var body = await response.Content.ReadAsStringAsync();
             Assert.Equal("{\"\":[\"The input was not valid.\"]}", body);
         }
-
-        [Fact]
-        public async Task UsesJsonConverterOnPropertyWhenPatching_Works()
-        {
-            // Arrange
-            var input = "[{ \"op\": \"add\", " +
-                "\"path\": \"Orders/-\", " +
-               "\"value\": { \"OrderType\": \"Type2\" }}]";
-            var request = new HttpRequestMessage
-            {
-                Content = new StringContent(input, Encoding.UTF8, "application/json-patch+json"),
-                Method = new HttpMethod("PATCH"),
-                RequestUri = new Uri("http://localhost/jsonpatch/PatchCustomer")
-            };
-
-            // Act
-            var response = await Client.SendAsync(request);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            var body = await response.Content.ReadAsStringAsync();
-            dynamic d = JObject.Parse(body);
-            Assert.Equal("OrderTypeSetInConverter", (string)d.orders[2].orderType);
-        }
-
-        [Fact]
-        public async Task JsonPatch_JsonConverterOnClass_Success()
-        {
-            // Arrange
-            var input = "[{ \"op\": \"add\", " +
-                "\"path\": \"ProductCategory\", " +
-               "\"value\": { \"CategoryName\": \"Name2\" }}]";
-            var request = new HttpRequestMessage
-            {
-                Content = new StringContent(input, Encoding.UTF8, "application/json-patch+json"),
-                Method = new HttpMethod("PATCH"),
-                RequestUri = new Uri("http://localhost/jsonpatch/PatchProduct")
-            };
-
-            // Act
-            var response = await Client.SendAsync(request);
-
-            // Assert
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            var body = await response.Content.ReadAsStringAsync();
-            dynamic d = JObject.Parse(body);
-            Assert.Equal("CategorySetInConverter", (string)d.productCategory.CategoryName);
-        }
     }
 }

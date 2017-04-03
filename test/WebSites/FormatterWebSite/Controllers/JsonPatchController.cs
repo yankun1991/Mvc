@@ -36,31 +36,6 @@ namespace FormatterWebSite.Controllers
         }
 
         [HttpPatch]
-        public IActionResult PatchCustomerWithPrefix([FromBody] JsonPatchDocument<Customer> patchDoc, string prefix)
-        {
-            // Check for model state here as the format(ex: structure) of the JSON patch request could be incorrect.
-            if (patchDoc != null)
-            {
-                var customer = CreateCustomer();
-
-                // Supply model state here to capture any errors which could result from invalid data.
-                // For example, inserting a value at an invalid index in a list.
-                patchDoc.ApplyTo(customer, ModelState, prefix);
-
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                return Ok(customer);
-            }
-            else
-            {
-                return BadRequest(ModelState);
-            }
-        }
-
-        [HttpPatch]
         public IActionResult PatchProduct([FromBody] JsonPatchDocument<Product> patchDoc)
         {
             if (patchDoc != null)
@@ -86,7 +61,7 @@ namespace FormatterWebSite.Controllers
         {
             return new Customer
             {
-                CustomerName = "John",
+                Name = "John",
                 Orders = new List<Order>()
                 {
                     new Order

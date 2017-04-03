@@ -7,6 +7,6 @@ namespace FormatterWebSite
     {
         public string ProductName { get; set; }
 
-        public Category ProductCategory { get; set; }
+        public CategoryType CategoryType { get; set; }
     }
 }

@@ -7,7 +7,7 @@ namespace FormatterWebSite
 {
     public class Customer
     {
-        public string CustomerName { get; set; }
+        public string Name { get; set; }
 
         public List<Order> Orders { get; set; }
     }
