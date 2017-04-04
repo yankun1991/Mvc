@@ -11,31 +11,6 @@ namespace FormatterWebSite.Controllers
     public class JsonPatchController : Controller
     {
         [HttpPatch]
-        public IActionResult PatchCustomer([FromBody] JsonPatchDocument<Customer> patchDoc)
-        {
-            // Check for model state here as the format(ex: structure) of the JSON patch request could be incorrect.
-            if (patchDoc != null)
-            {
-                var customer = CreateCustomer();
-
-                // Supply model state here to capture any errors which could result from invalid data.
-                // For example, inserting a value at an invalid index in a list.
-                patchDoc.ApplyTo(customer, ModelState);
-
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                return Ok(customer);
-            }
-            else
-            {
-                return BadRequest(ModelState);
-            }
-        }
-
-        [HttpPatch]
         public IActionResult PatchProduct([FromBody] JsonPatchDocument<Product> patchDoc)
         {
             if (patchDoc != null)
@@ -57,12 +32,12 @@ namespace FormatterWebSite.Controllers
             }
         }
 
-        private Customer CreateCustomer()
+        private Product CreateProduct()
         {
-            return new Customer
+            return new Product
             {
-                Name = "John",
-                Orders = new List<Order>()
+                Name = "Book1",
+                Reviews = new List<Review>()
                 {
                     new Order
                     {
