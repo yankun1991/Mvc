@@ -2,13 +2,15 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.RazorPages.ApplicationFeature;
 using Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure;
 using Microsoft.AspNetCore.Mvc.RazorPages.Internal;
-using Microsoft.AspNetCore.Mvc.ViewFeatures.Internal;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
@@ -18,14 +20,7 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         public static IMvcCoreBuilder AddRazorPages(this IMvcCoreBuilder builder)
         {
-            if (builder == null)
-            {
-                throw new ArgumentNullException(nameof(builder));
-            }
-
-            builder.AddRazorViewEngine();
-            AddServices(builder.Services);
-            return builder;
+            return AddRazorPages(builder, _ => { });
         }
 
         public static IMvcCoreBuilder AddRazorPages(
@@ -43,11 +38,21 @@ namespace Microsoft.Extensions.DependencyInjection
             }
 
             builder.AddRazorViewEngine();
+
+            AddFeatureProviders(builder);
             AddServices(builder.Services);
 
             builder.Services.Configure(setupAction);
 
             return builder;
+        }
+
+        private static void AddFeatureProviders(IMvcCoreBuilder builder)
+        {
+            if (!builder.PartManager.FeatureProviders.OfType<CompiledPageFeatureProvider>().Any())
+            {
+                builder.PartManager.FeatureProviders.Add(new CompiledPageFeatureProvider());
+            }
         }
 
         // Internal for testing.
@@ -57,10 +62,14 @@ namespace Microsoft.Extensions.DependencyInjection
             services.TryAddEnumerable(
                 ServiceDescriptor.Transient<IConfigureOptions<RazorPagesOptions>, RazorPagesOptionsSetup>());
 
-            // Action Invoker
+            // Action description and invocation
             services.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IActionDescriptorProvider, PageActionDescriptorProvider>());
             services.TryAddSingleton<IActionDescriptorChangeProvider, PageActionDescriptorChangeProvider>();
+            services.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IPageApplicationModelProvider, RazorProjectPageApplicationModelProvider>());
+            services.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IPageApplicationModelProvider, CompiledPageApplicationModelProvider>());
 
             services.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IActionInvokerProvider, PageActionInvokerProvider>());
@@ -81,6 +90,7 @@ namespace Microsoft.Extensions.DependencyInjection
             // Action executors
             services.TryAddSingleton<PageResultExecutor>();
             services.TryAddSingleton<RedirectToPageResultExecutor>();
+            services.TryAddSingleton<CompiledPageApplicationModelProvider>();
         }
     }
 }

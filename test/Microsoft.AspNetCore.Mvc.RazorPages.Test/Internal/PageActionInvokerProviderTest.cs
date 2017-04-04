@@ -723,7 +723,7 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Internal
         }
 
         [Fact]
-        public void GetViewStartFactories_NoFactoriesForMissingFiles()
+        public void GetViewStartFactories_ReturnsF()
         {
             // Arrange
             var descriptor = new PageActionDescriptor()
@@ -739,6 +739,14 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Internal
             var actionDescriptorProvider = new Mock<IActionDescriptorCollectionProvider>();
             actionDescriptorProvider.Setup(p => p.ActionDescriptors).Returns(descriptorCollection);
 
+            var pageFactory = new Mock<IRazorPageFactoryProvider>();
+            pageFactory.Setup(f => f.CreateFactory("/Views/Deeper/_ViewStart.cshtml"))
+                .Returns(new RazorPageFactoryResult(() => null, new IChangeToken[0]));
+            pageFactory.Setup(f => f.CreateFactory("/Views/_ViewStart.cshtml"))
+                .Returns(new RazorPageFactoryResult(new IChangeToken[0]));
+            pageFactory.Setup(f => f.CreateFactory("/_ViewStart.cshtml"))
+                .Returns(new RazorPageFactoryResult(() => null, new IChangeToken[0]));
+
             // No files
             var fileProvider = new TestFileProvider();
             var razorProject = new TestRazorProject(fileProvider);
@@ -748,16 +756,16 @@ namespace Microsoft.AspNetCore.Mvc.RazorPages.Internal
                 actionDescriptorProvider.Object,
                 pageProvider: null,
                 modelProvider: null,
-                razorPageFactoryProvider: CreateRazorPageFactoryProvider(),
+                razorPageFactoryProvider: pageFactory.Object,
                 razorProject: razorProject);
 
             var compiledDescriptor = CreateCompiledPageActionDescriptor(descriptor);
 
             // Act
-            var factories = invokerProvider.GetViewStartFactories(compiledDescriptor);
+            var factories = invokerProvider.GetViewStartFactories(compiledDescriptor).ToList();
 
             // Assert
-            Assert.Empty(factories);
+            Assert.Equal(2, factories.Count);
         }
 
         private IRazorPageFactoryProvider CreateRazorPageFactoryProvider()
