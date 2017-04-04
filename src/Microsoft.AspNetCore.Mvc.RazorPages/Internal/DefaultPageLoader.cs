@@ -4,15 +4,13 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc.Razor.Internal;
 using Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure;
-using Microsoft.AspNetCore.Razor.Evolution;
 
 namespace Microsoft.AspNetCore.Mvc.RazorPages.Internal
 {
     public class DefaultPageLoader : IPageLoader
     {
         private const string ModelPropertyName = "Model";
-
-        private readonly RazorTemplateEngine _templateEngine;
+        
         private readonly RazorCompiler _compiler;
 
         public DefaultPageLoader(RazorCompiler compiler)
