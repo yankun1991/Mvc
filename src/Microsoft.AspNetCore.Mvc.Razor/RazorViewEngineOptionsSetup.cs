@@ -59,6 +59,8 @@ namespace Microsoft.AspNetCore.Mvc
             razorOptions.AreaViewLocationFormats.Add("/Areas/{2}/Views/{1}/{0}" + RazorViewEngine.ViewExtension);
             razorOptions.AreaViewLocationFormats.Add("/Areas/{2}/Views/Shared/{0}" + RazorViewEngine.ViewExtension);
             razorOptions.AreaViewLocationFormats.Add("/Views/Shared/{0}" + RazorViewEngine.ViewExtension);
+
+            razorOptions.PageViewLocationFormats.Add("{1}/{0}" + RazorViewEngine.ViewExtension);
         }
     }
 }

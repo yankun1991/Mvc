@@ -56,6 +56,8 @@ namespace Microsoft.Extensions.DependencyInjection
             // Options
             services.TryAddEnumerable(
                 ServiceDescriptor.Transient<IConfigureOptions<RazorPagesOptions>, RazorPagesOptionsSetup>());
+            services.TryAddEnumerable(
+                ServiceDescriptor.Transient<IConfigureOptions<RazorViewEngineOptions>, RazorPagesRazorViewEngineOptionsSetup>());
 
             // Action Invoker
             services.TryAddEnumerable(
